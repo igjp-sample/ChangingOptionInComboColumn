@@ -1,0 +1,84 @@
+﻿@page "/"
+@using IG_Grid_BlazorServer.Data;
+@using System.Collections.ObjectModel;
+@inject IIgniteUIBlazor IgniteUIBlazor;
+
+<PageTitle>Index</PageTitle>
+
+<h1>Hello, world!</h1>
+
+
+<div style="margin: 1em">
+    <IgbDataGrid Height="100%" Width="100%"
+                 @ref="DataGridRef"
+                 DataSource="People"
+                 AutoGenerateColumns="false"
+                 PrimaryKey="PrimaryKeys"
+                 EditMode="EditModeType.Cell"
+                 CellEditStarted="OnCellEditStarted">
+        <IgbTextColumn Name="ID" Field="ID" HeaderText="ID" />
+        <IgbTextColumn Name="Name" Field="Name" HeaderText="氏名" />
+        <IgbComboBoxColumn Name="Region" Field="Region" HeaderText="地域" DataSource="Regions" TextField="RegionName" />
+        <IgbComboBoxColumn Name="Prefecture" Field="Prefecture" HeaderText="県" DataSource="Prefectures" TextField="PrefectureName" ValueField="ValueField" />
+        <IgbNumericColumn Name="Age" Field="Age" HeaderText="年齢" />
+    </IgbDataGrid>
+</div>
+
+@code
+{
+    private ObservableCollection<Person> People;
+    private List<Region> Regions;
+    private List<Prefecture> Prefectures;
+    private string[] PrimaryKeys = new String[] { "ID" };
+    private string[] ValueField = new String[] { "PrefectureName" };
+    public IgbDataGrid DataGridRef;
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+        IgbDataGridModule.Register(IgniteUIBlazor);
+
+        Regions = new List<Region>();
+        Regions.Add(new Region() { RegionName = "関東" });
+        Regions.Add(new Region() { RegionName = "近畿" });
+
+        Prefectures = new List<Prefecture>();
+        Prefectures.Add(new Prefecture() { RegionName = "関東", PrefectureName = "東京都" });
+        Prefectures.Add(new Prefecture() { RegionName = "関東", PrefectureName = "神奈川県" });
+        Prefectures.Add(new Prefecture() { RegionName = "近畿", PrefectureName = "大阪府" });
+        Prefectures.Add(new Prefecture() { RegionName = "近畿", PrefectureName = "京都府" });
+
+        String[] familyNames = new String[] { "田沢", "玉木", "稲垣", "石橋", "小柳", "池上", "安東", "梅原", "栗林", "岸本", "白石", "杉山", "丹野", "深谷", "赤塚", "小林", "磯野", "北山", "重松", "河田", "宮沢", "坪田", "神戸", "金沢", "倉橋", "豊田", "名取", "植村", "山形", "島崎", "西口", "長島", "土居", "谷口", "長崎", "塚本", "石野", "小野寺", "阪本", "石川", "毛利", "古賀", "柳原", "清田", "陳", "三木", "篠原", "平松", "塩田", "桜田" };
+        String[] givenNames = new string[] { "泰三", "裕美子", "幸男", "幸春", "穂香", "一憲", "俊光", "雅之", "季衣", "治虫", "真実", "蒼", "一輝", "重彦", "葵衣", "宏寿", "昌己", "華音", "陽向", "広吉", "夕映", "竹男", "理津子", "奏音", "亜衣", "美代子", "勉", "俊郎", "竜也", "花奈子", "岩夫", "幸平", "瑞稀", "朋之", "信一", "春菜", "優菜", "百恵", "新太郎", "奈緒子", "萌香", "淳", "紗奈", "柚咲", "武一", "豊子", "恵利", "優", "光", "和子" };
+        String[] prefectures = new string[] { "東京都", "神奈川県", "大阪府", "京都府" };
+
+        Random rnd = new Random();
+
+        People = new ObservableCollection<Person>();
+        for (int i = 0; i < 10; i++)
+        {
+            String region = Regions[rnd.Next(Regions.Count())].RegionName;
+            List<Prefecture> prefecturesInRegion = Prefectures.Where(pref => pref.RegionName == region).ToList<Prefecture>();
+            String prefecture = prefecturesInRegion[rnd.Next(prefecturesInRegion.Count())].PrefectureName;
+            People.Add(new Person()
+                {
+                    ID = rnd.Next(1, 100).ToString("D02") + "-" + i.ToString("D04"),
+                    Name = familyNames[rnd.Next(familyNames.Length)] + " " + givenNames[rnd.Next(givenNames.Length)],
+                    Region = region,
+                    Prefecture = prefecture,
+                    Age = rnd.Next(20, 81)
+                });
+        }
+        this.PrimaryKeys = new string[] { "ID" };
+    }
+
+    protected void OnCellEditStarted(IgbGridCellEditStartedEventArgs args)
+    {
+        if (args.Column.Field == "Prefecture")
+        {
+            ((IgniteUI.Blazor.Controls.IgbComboBoxColumn)args.Column).DataSource =
+                this.Prefectures.Where(pref => pref.RegionName == (args.Item as Person).Region);
+            this.DataGridRef.InvalidateVisibleRowsAsync();
+        }
+    }
+}
